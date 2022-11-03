@@ -1,0 +1,19 @@
+# 系统环境
+aep_devdax_path: /dev/dax1.0
+
+# output
+# 显示带宽，平均时延，99th，99.9th，99.99th
+
+# 以下每一个对象代表一次测试
+test1:
+  thread_num: 1
+  buffer_size: 1024 # 单位 M
+  rw_type: read
+  access_mode: random
+  access_size: 8 # 单位 B
+  runtime: 5 # 单位 s
+  core_id: 20
+  socket: 1
+
+# libnuma 学习
+

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <assert.h>
 #include <sys/time.h>
+#include <numa.h>
 
 using namespace std;
 
@@ -14,14 +15,31 @@ static inline uint64_t get_now_micros() {
     return (tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
+void numa_bind_on_socket_strict(int socket) {
+    bitmask* node_mask = numa_get_mems_allowed();
+    numa_bitmask_clearall(node_mask);
+    numa_bitmask_setbit(node_mask, socket);
+    numa_bind(node_mask);
+    numa_bitmask_free(node_mask);
+    numa_set_bind_policy(1);
+    // numa_set_strict();
+    // numa_run_on_node(socket);
+    // numa_set_membind()
+    node_mask = numa_get_membind();
+    assert(numa_bitmask_weight(node_mask) == 1);
+    assert(numa_bitmask_isbitset(node_mask, socket));
+}
+
 // 1: buffer大小，单位K
 // 2: 读取总量，单位K
 // numactl --cpubind=0 --membind=1 ./bin/numa_dram_test 1024 1024
 int main(int argc, char *argv[]) {
     buffer_size = atoi(argv[1]) * 1024;
     total_access = atoi(argv[2]) * 1024;
-
     printf("buffer_size=%dk, total_access=%dk\n", buffer_size, total_access);
+
+    numa_bind_on_socket_strict(1);
+
     buffer = (int64_t*)malloc(buffer_size);
     assert(buffer);
     for(int i = 0; i < buffer_size/sizeof(int64_t); ++i) {
@@ -76,6 +94,7 @@ int main(int argc, char *argv[]) {
     printf("%s\t %lu us\n", label, end_ts - start_ts);
     assert(sum == total_access/sizeof(int64_t));
 
+    free(buffer);
     return 0;
 }
 

@@ -12,7 +12,7 @@ CXX = g++
 # CXXFLAGS += --std=c++11 -g -Iinclude -Isrc                # 这里可以添加头文件寻找的路径
 CXXFLAGS += --std=c++11 #-O3                # 这里可以添加头文件寻找的路径
 # LDFLAGS = -rpath=. -L.. -lpthread -lpmem2 -lgtest       # 链接库，指定搜索路径
-LDFLAGS = -lpthread     # 链接库，指定搜索路径
+LDFLAGS = -lpthread -lpmem2    # 链接库，指定搜索路径
 # 关于依赖库，参考 https://blog.csdn.net/q1302182594/article/details/42102961/
 
 # DEPENCES = ../cpu.h ../chunk_allocator.h ../pm_allocator.h    # 依赖头文件，只用来检测更新关系

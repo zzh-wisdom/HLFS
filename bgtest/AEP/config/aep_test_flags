@@ -1,0 +1,17 @@
+# 系统环境
+--aep_dev_path=/dev/dax3.0
+# 单位 B
+--buffer_size=10241024
+--rw_type=write
+--access_mode=random
+# 单位 B
+--access_size=8
+# 单位 s
+--runtime=5
+--socket=1
+--thread_num=2
+--core_ids=20-21
+
+# libnuma 学习
+# output
+# 显示带宽，平均时延，99th，99.9th，99.99th
