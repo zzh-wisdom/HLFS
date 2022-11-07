@@ -1,13 +1,14 @@
 # 系统环境
 --aep_dev_path=/dev/dax3.0
 # 单位 B
---buffer_size=10241024
+--buffer_size=1024
 --rw_type=write
 --access_mode=random
 # 单位 B
---access_size=8
+--access_size=16
 # 单位 s
 --runtime=5
+--iters=1000000
 --socket=1
 --thread_num=2
 --core_ids=20-21

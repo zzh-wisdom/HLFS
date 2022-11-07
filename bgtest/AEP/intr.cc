@@ -3,72 +3,15 @@
 #include <string.h>
 #include <libpmem2.h>
 
-// #if defined(__x86_64__)
-// #include <mmintrin.h>
-// #include <x86intrin.h>
-// #else
-// # error "Not support"
-// #endif
+#include <immintrin.h>
+
+#include <util/aep.h>
 
 using namespace std;
 
-#ifndef __x86_64__
-# error "Not support, should run on __x86_64__"
-#endif
-
-#define clflush(addr)\
-	asm volatile("clflush %0" : "+m" (*(volatile char *)(addr)))
-#define clflushopt(addr)\
-	asm volatile(".byte 0x66; clflush %0" :\
-	"+m" (*(volatile char *)(addr)));
-#define clwb(addr)\
-	asm volatile(".byte 0x66; xsaveopt %0" :\
-	"+m" (*(volatile char *)(addr)));
-#define lfence() __asm__ __volatile__("lfence": : :"memory")
-#define sfence() __asm__ __volatile__("sfence": : :"memory")
-#define mfence() __asm__ __volatile__("mfence": : :"memory")
-#define barrier() __asm__ __volatile__("": : :"memory")
-
-void ntload_ntstore_64byte(const char *dst, const char *src) {
-    asm volatile(
-        "mov %[src], %%rsi \n"
-        "mov %[dst], %%rdi \n"
-        "vmovntdqa 0*32(%%rsi), %%ymm0 \n"
-        "vmovntdqa 1*32(%%rsi), %%ymm1 \n"
-        "vmovntpd %%ymm0, 0*32(%%rdi) \n"
-        "vmovntpd %%ymm1, 1*32(%%rdi) \n"
-        :
-        : [src] "r" (src), [dst] "r" (dst)
-        : "rsi", "rdi", "ymm0", "ymm1"
-    );
-}
-
-void load_ntstore_64byte(const char *dst, const char *src) {
-    asm volatile(
-        "mov %[src], %%rsi \n"
-        "mov %[dst], %%rdi \n"
-        "vmovdqa 0*32(%%rsi), %%ymm0 \n"
-        "vmovdqa 1*32(%%rsi), %%ymm1 \n"
-        "vmovntpd %%ymm0, 0*32(%%rdi) \n"
-        "vmovntpd %%ymm1, 1*32(%%rdi) \n"
-        :
-        : [src] "r" (src), [dst] "r" (dst)
-        : "rsi", "rdi", "ymm0", "ymm1"
-    );
-}
-
-void load_64byte_fence(const char *addr) {
-    asm volatile(
-        "mov %[memarea], %%rsi \n"
-        // "mfence \n"
-        "vmovdqa 0*32(%%rsi), %%ymm0 \n"
-        "vmovdqa 1*32(%%rsi), %%ymm1 \n"
-        :
-        : [memarea] "r" (addr)
-        : "rsi", "rdi", "ymm0", "ymm1");
-}
 char nstore_64byte_label[1024] = "0123456789012345678901234567890123456789012345678901234567890123456789"
         "0123456789012345678901234567890123456789";
+char my_load_store_buf[1024] = "my_load_store_buf_987654321098765432109876543210987654321098765432109876543210";
 
 const char* devdax_path = "/dev/dax1.0";
 
@@ -107,10 +50,12 @@ int main() {
     char *addr = (char*)pmem2_map_get_address(map);
     size_t size = pmem2_map_get_size(map);
 
-    printf("set before: \n%s", addr);
+    printf("init: \n%s", addr);
 
     auto memset_fn = pmem2_get_memset_fn(map);
-    memset_fn(addr, 0, 1024, 0);
+    memset_fn(addr, 0, 2048, 0);
+    printf("set before: \n%s", addr);
+
     const char* _mm_clflush_label = "_mm_clflush,_mm_clflush,_mm_clflush,_mm_clflush,_mm_clflush"
         ",_mm_clflush,_mm_clflush,_mm_clflush,_mm_clflush,_mm_clflush,_mm_clflush";
     const char* _mm_clflushopt_label = "_mm_clflushopt,_mm_clflushopt,_mm_clflushopt,_mm_clflushopt"
@@ -130,11 +75,17 @@ int main() {
     // load_64byte_fence(nstore_64byte_label);
     // printf("load_64byte_fence\n");
     nstore_64byte_label[63] = '\n';
-    ntload_ntstore_64byte(addr+64+64+64, nstore_64byte_label);
-    load_ntstore_64byte(addr+64+64+64+64, nstore_64byte_label);
+    cpy_2x32b_ntload_ntstore(addr+64+64+64, nstore_64byte_label);
+    cpy_2x32b_load_ntstore(addr+64+64+64+64, nstore_64byte_label);
+    my_load_store_buf[63] = '\n';
+    cpy_2x32b_load_store_flush(  addr+64+64+64+64+64, my_load_store_buf);
+    cpy_2x32b_load_ntstore(      addr+64+64+64+64+64+64, my_load_store_buf);
+    cpy_2x32b_load_store_noflush(addr+64+64+64+64+64+64+64, my_load_store_buf);
     sfence();
     lfence();
     mfence();
+    printf("set after: \n%s", addr);
+    char buf[9];
     abort();
     return 0;
 }
