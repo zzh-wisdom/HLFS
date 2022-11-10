@@ -9,7 +9,12 @@ const int BUF_LEN = 64 * 32;
 char src[BUF_LEN];
 char dest[BUF_LEN];
 
+// char* src;
+// char* dest;
+
 ATTR_CONSTRUCTOR void init() {
+    // src = (char*)malloc(BUF_LEN);
+    // dest = (char*)malloc(BUF_LEN);
     uint32_t seq = 0;
     for(int i = 0; i < BUF_LEN; ++i) {
         src[i] = (seq++)%26 + 'a';

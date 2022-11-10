@@ -12,21 +12,22 @@ set (PACKAGE_VERSION     "1.0")
 
 project (${PACKAGE_NAME} VERSION ${PACKAGE_VERSION} LANGUAGES CXX)
 
-add_compile_options(-g)
-# add_definitions(-D NDEBUG)
+# add_compile_options(-g)
+add_definitions(-D NDEBUG)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
 
 include_directories(../..)
 
 # find_package(gflags REQUIRED)
 # find_package(glog REQUIRED)
 
-FILE(GLOB aep_test_src ../../util/*.cc)
-list(FILTER aep_test_src EXCLUDE REGEX "../../util/.+test.cc")
+FILE(GLOB aep_study_src ../../util/*.cc)
+list(FILTER aep_study_src EXCLUDE REGEX "../../util/.+test.cc")
 
-message("${aep_test_src}")
+# message("${aep_study_src}")
 
-add_executable(aep_test aep_test.cc ${aep_test_src})
-target_link_libraries(aep_test glog pthread numa gflags pmem2)
+add_executable(aep_study aep_study.cc ${aep_study_src})
+target_link_libraries(aep_study glog pthread numa gflags pmem2)
 
-add_executable(intr intr.cc ${aep_test_src})
+add_executable(intr intr.cc ${aep_study_src})
 target_link_libraries(intr glog pthread numa gflags pmem2)

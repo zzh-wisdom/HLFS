@@ -1,17 +1,33 @@
 # 系统环境
 --aep_dev_path=/dev/dax3.0
 # 单位 B
---buffer_size=1024
+# 64GB 68719476736
+# 32GB 34359738368
+# 16G  17179869184
+# 8G   8589934592
+# 1G   1073741824
+# 512M 536870912
+--buffer_size=34359738368
 --rw_type=write
---access_mode=random
+--access_mode=seq
 # 单位 B
---access_size=16
+# 16384
+# 32768
+# 65536
+--access_size=64
 # 单位 s
---runtime=5
---iters=1000000
+--runtime=32
+# 536870912 * 64 = 32G
+# 8388608   * 4096 = 32G
+--iters=6000000
 --socket=1
---thread_num=2
---core_ids=20-21
+--thread_num=1
+--core_ids=20
+
+--report_to_stdout
+# --vary_access_size
+# --vary_thread_num
+
 
 # libnuma 学习
 # output

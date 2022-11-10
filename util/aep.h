@@ -31,9 +31,17 @@
 #define mfence() __asm__ __volatile__("mfence" : : : "memory")
 #define barrier() __asm__ __volatile__("" : : : "memory")
 
+static force_inline void clwb_extent(const char *addr, size_t len) {
+    uintptr_t uptr;
+    for (uptr = (uintptr_t)addr & CACHELINE_UNMASK; uptr < (uintptr_t)addr + len;
+         uptr += CACHELINE_SIZE) {
+        clwb(uptr)
+    }
+}
+
 static force_inline void cpy_less_16b_noflush(char *dest, const char *src, size_t len) {
     dlog_assert(len < 16);
-    if(len == 0) return;
+    if (len == 0) return;
     if (len <= 8) goto le8;
     { /* 9..16 */
         uint64_t d80 = *(uint64_t *)src;
@@ -76,6 +84,31 @@ le2:
  * native
  *****************************************************/
 
+static force_inline void memset_native_noflush(char *dest, int c, size_t len) {
+    memset(dest, c, len);
+}
+
+static force_inline void memset_native_flush(char *dest, int c, size_t len) {
+    size_t cnt = (uintptr_t)dest & CACHELINE_MASK;
+    if (cnt > 0) {
+        cnt = CACHELINE_SIZE - cnt;
+        if (cnt > len) cnt = len;
+        memset(dest, c, cnt);
+        clwb((uintptr_t)dest & CACHELINE_UNMASK);
+        dest += cnt;
+        len -= cnt;
+    }
+    while (len >= CACHELINE_SIZE) {
+        memset(dest, c, CACHELINE_SIZE);
+        clwb((uintptr_t)dest);
+        dest += CACHELINE_SIZE;
+        len -= CACHELINE_SIZE;
+    }
+    if (len == 0) return;
+    memset(dest, c, len);
+    clwb((uintptr_t)dest);
+}
+
 static force_inline void cpy_native_noflush(char *dest, const char *src, size_t len) {
     memcpy(dest, src, len);
 }
@@ -96,7 +129,7 @@ static force_inline void cpy_native_flush(char *dest, const char *src, size_t le
         clwb((uintptr_t)dest);
         dest += CACHELINE_SIZE;
         src += CACHELINE_SIZE;
-        len -= cnt;
+        len -= CACHELINE_SIZE;
     }
     if (len == 0) return;
     memcpy(dest, src, len);
@@ -185,6 +218,7 @@ static force_inline void cpy_load_store_noflush(char *dest, const char *src, siz
 
 static force_inline void cpy_load_store_flush(char *dest, const char *src, size_t len) {
     bool need_flush = (uintptr_t)dest & CACHELINE_MASK;
+    uintptr_t flush_addr = (uintptr_t)dest & CACHELINE_UNMASK;
     size_t cnt = (uintptr_t)dest & 15;
     if (cnt > 0) {
         cnt = 16 - cnt;
@@ -207,7 +241,7 @@ static force_inline void cpy_load_store_flush(char *dest, const char *src, size_
         len -= 32;
     }
     if (need_flush) {
-        clwb((uintptr_t)dest - CACHELINE_SIZE);
+        clwb(flush_addr);
     }
 
     // while (len >= 32 * 32) {
@@ -349,6 +383,7 @@ static force_inline void cpy_ntload_store_noflush(char *dest, const char *src, s
 static force_inline void cpy_ntload_store_flush(char *dest, const char *src, size_t len) {
     bool need_flush = (uintptr_t)dest & CACHELINE_MASK;
     size_t cnt = (uintptr_t)dest & 15;
+    uintptr_t flush_addr = (uintptr_t)dest & CACHELINE_UNMASK;
     if (cnt > 0) {
         cnt = 16 - cnt;
         if (cnt > len) cnt = len;
@@ -370,7 +405,7 @@ static force_inline void cpy_ntload_store_flush(char *dest, const char *src, siz
         len -= 32;
     }
     if (need_flush) {
-        clwb((uintptr_t)dest - CACHELINE_SIZE);
+        clwb(flush_addr);
     }
 
     // while (len >= 32 * 32) {
@@ -593,6 +628,7 @@ static force_inline void cpy_ntload_ntstore(char *dest, const char *src, size_t 
 }
 
 struct pmem2_map *Pmem2Map(const std::string &dev_file);
+struct pmem2_map *Pmem2MapFromFd(int fd);
 
 struct pmem2_map *Pmem2MapAndTruncate(const std::string &file, uint64_t size);
 

@@ -1,0 +1,1 @@
+sudo cat /mnt/pmem2/aep_test/report/* > ./tmp/tmp.txt
