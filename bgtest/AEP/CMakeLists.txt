@@ -31,3 +31,8 @@ target_link_libraries(aep_study glog pthread numa gflags pmem2)
 
 add_executable(intr intr.cc ${aep_study_src})
 target_link_libraries(intr glog pthread numa gflags pmem2)
+
+add_executable(helper helper.cc)
+
+add_executable(dram_test dram_test.cc ${aep_study_src})
+target_link_libraries(dram_test glog pthread numa gflags pmem2)

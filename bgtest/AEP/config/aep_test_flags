@@ -7,14 +7,16 @@
 # 8G   8589934592
 # 1G   1073741824
 # 512M 536870912
---buffer_size=34359738368
+# 34359738368
+--buffer_size=8589934592
 --rw_type=write
+# random
 --access_mode=seq
 # 单位 B
 # 16384
 # 32768
 # 65536
---access_size=64
+--access_size=4096
 # 单位 s
 --runtime=32
 # 536870912 * 64 = 32G
@@ -22,10 +24,10 @@
 --iters=6000000
 --socket=1
 --thread_num=1
---core_ids=20
+--core_ids=25
 
 --report_to_stdout
-# --vary_access_size
+--vary_access_size
 # --vary_thread_num
 
 

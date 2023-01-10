@@ -227,6 +227,23 @@ static force_inline uint64_t aep_pmem2_cpy_dram_com(char* aep, const char* dram,
     return end - start;
 }
 
+static force_inline uint64_t aep_native_store_dram(char* aep, const char* dram, size_t len) {
+    uint64_t start = GetTsNsec();
+    barrier();
+
+    uint64_t* dst = (uint64_t*)aep;
+    const uint64_t* src = (const uint64_t*)dram;
+    for(int i = 0; i < len; i += sizeof(uint64_t)) {
+        dst[i] = src[i];
+    }
+    clwb_extent(aep, len);
+    sfence();
+
+    barrier();
+    uint64_t end = GetTsNsec();
+    return end - start;
+}
+
 static force_inline uint64_t aep_pmem2_cpy_dram_t(char* aep, const char* dram, size_t len) {
     uint64_t start = GetTsNsec();
     barrier();
@@ -249,6 +266,20 @@ static force_inline uint64_t aep_pmem2_cpy_dram_nt(char* aep, const char* dram, 
     return end - start;
 }
 
+static force_inline uint64_t cpy_64b_MOVDIR64B(char* aep, const char* dram, size_t len) {
+    asm volatile(
+        "mov %[src], %%rsi \n"
+        "mov %[dest], %%rdi \n"
+        LOAD_INSTR" 0*32(%%rsi), %%zmm0 \n"
+        LOAD_INSTR" 1*32(%%rsi), %%ymm1 \n"
+        STORE_INSTR" %%ymm0, 0*32(%%rdi) \n"
+        STORE_INSTR" %%ymm1, 1*32(%%rdi) \n"
+        :
+        : [src] "r" (dram), [dest] "r" (aep)
+        : "rsi", "rdi", "zmm0"
+    );
+}
+
 aep_op_fn aep_write_funcs[] = {
     aep_write_baseline,
     // aep_just_store_flush_by_all,      // 比不过pmdk
@@ -260,6 +291,7 @@ aep_op_fn aep_write_funcs[] = {
     // aep_native_cpy_dram_by_all,
     // aep_native_cpy_dram_by_cacheline,
     // aep_pmem2_cpy_dram_com,
+    // aep_native_store_dram,
     aep_pmem2_cpy_dram_t,
     aep_pmem2_cpy_dram_nt,
 };
@@ -276,6 +308,7 @@ const char* aep_write_func_labels[] = {
     // "native_cpy_dram_by_all",
     // "native_cpy_dram_by_cacheline",
     // "pmem2_cpy_dram_com",
+    // "aep_native_store_dram",
     "pmem2_cpy_dram_t",
     "pmem2_cpy_dram_nt",
 };
